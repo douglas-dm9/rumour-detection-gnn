@@ -149,3 +149,190 @@ class Load_Rumours_Dataset_filtering_since_first_post:
             Tuple[pd.DataFrame, pd.DataFrame]: The processed training and test datasets.
         """
         return self.train_dataset, self.test_dataset
+
+
+class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
+    """
+    This class loads, preprocesses, and transforms rumor detection data for transfer learning.
+    It combines a portion of the test dataset into the training set, processes reply-post
+    interactions, performs feature engineering (e.g., reply timing), and scales the features.
+    """
+
+    def __init__(self, train_dataset, test_dataset, time_cut=24*3*60, test_size=0.7):
+        """
+        Initialize dataset paths and default parameters.
+
+        Parameters:
+        - train_dataset (str): Name of the training dataset (used for file paths).
+        - test_dataset (str): Name of the test dataset (used for file paths).
+        - time_cut (int): Maximum allowed time since the first post (in minutes).
+        - test_size (float): Proportion of test data used as test set.
+        """
+        self.train_dataset = train_dataset
+        self.test_dataset = test_dataset
+        self.time_cut = time_cut
+        self.scaler_posts = RobustScaler()
+        self.test_size = test_size
+
+        # Set file paths for replies and posts
+        self.file_path_replies_train = f"replies_{self.train_dataset}.pkl"
+        self.file_path_posts_train = f"posts_{self.train_dataset}.pkl"
+        self.file_path_replies_test = f"replies_{self.test_dataset}.pkl"
+        self.file_path_posts_test = f"posts_{self.test_dataset}.pkl"
+
+    def load_data(self):
+        """
+        Load data from pickle files for both training and testing sets.
+        """
+        self.df_replies_train = pd.read_pickle(self.file_path_replies_train)
+        self.df_posts_train = pd.read_pickle(self.file_path_posts_train)
+        self.df_replies = pd.read_pickle(self.file_path_replies_test)
+        self.df_posts = pd.read_pickle(self.file_path_posts_test)
+
+    def process_data(self):
+        """
+        Processes the dataset by merging posts and replies, generating features,
+        filtering by time_cut, scaling, and combining datasets.
+        """
+
+        # Merge replies time info into posts, and sort by time
+        self.df_posts = self.df_posts.merge(
+            self.df_replies[['id', 'time']].drop_duplicates(), on='id', how='left'
+        ).sort_values(by='time', ascending=True)
+
+        # Split test posts into test and transfer parts
+        df_posts_test = self.df_posts[int(len(self.df_posts) * (1 - self.test_size)):]
+        df_posts_concat = self.df_posts[:int(len(self.df_posts) * (1 - self.test_size))]
+
+        # Split replies accordingly
+        df_replies_concat = self.df_replies[self.df_replies.id.isin(df_posts_concat.id)]
+        df_replies_test = self.df_replies[~self.df_replies.id.isin(df_posts_concat.id)]
+
+        # Concatenate partial test data into training
+        df_posts_train = pd.concat([self.df_posts_train, df_posts_concat])
+        df_replies_train = pd.concat([self.df_replies_train, df_replies_concat])
+
+        # Relevant features
+        features = ['followers', 'favorite_count', 'retweet_count', 'verified', 'rumour', 'id', 'embeddings_avg']
+
+        # Compute time since first post (in minutes)
+        df_replies_train['min_since_fst_post'] = round(
+            (df_replies_train['time'] - df_replies_train['time'].min()).dt.total_seconds() / 60, 2
+        )
+        df_replies_test['min_since_fst_post'] = round(
+            (df_replies_test['time'] - df_replies_test['time'].min()).dt.total_seconds() / 60, 2
+        )
+
+        # Compute time difference between reply and first post
+        df_replies_train['reply_min_since_fst_post'] = round(
+            (df_replies_train['reply_time'] - df_replies_train['time'].min()).dt.total_seconds() / 60, 2
+        )
+        df_replies_test['reply_min_since_fst_post'] = round(
+            (df_replies_test['reply_time'] - df_replies_test['time'].min()).dt.total_seconds() / 60, 2
+        )
+
+        # Group reply features for training data
+        grouped_replies = df_replies_train.groupby(['id', 'min_since_fst_post']).agg(
+            replies=('time_diff', 'count'),
+            first_time_diff=('time_diff', 'first')
+        ).reset_index()
+
+        # Merge reply info with posts (training)
+        df_posts_train = df_posts_train[features].merge(grouped_replies, on="id", how="inner")
+        df_posts_train.fillna(0, inplace=True)
+
+        # One-hot encode 'verified'
+        df_posts_train['verified'] = df_posts_train['verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
+        df_posts_train = pd.concat([df_posts_train, pd.get_dummies(df_posts_train["verified"], dtype=int)], axis=1)
+        df_posts_train.drop(["verified"], axis=1, inplace=True)
+        df_posts_train.rename(columns={1: 'verified', 0: 'no_verified'}, inplace=True)
+
+        # Scale numeric features (training)
+        post_features = df_posts_train[[
+            "followers", "favorite_count", "retweet_count", "no_verified",
+            "verified", "rumour", "embeddings_avg", "replies", "first_time_diff", "min_since_fst_post"
+        ]]
+        scaled_features = self.scaler_posts.fit_transform(
+            post_features[['followers', 'favorite_count', 'retweet_count', 'first_time_diff', 'replies']]
+        )
+
+        scaled_data = pd.DataFrame(scaled_features, columns=[
+            'followers', 'favorite_count', 'retweet_count', 'first_time_diff', 'replies'
+        ])
+        scaled_data['no_verified'] = post_features['no_verified'].values
+        scaled_data['verified'] = post_features['verified'].values
+        scaled_data['embeddings_avg'] = post_features['embeddings_avg'].values
+        scaled_data['rumour'] = post_features['rumour'].values
+        scaled_data['min_since_fst_post'] = post_features['min_since_fst_post'].values
+
+        self.train = scaled_data
+
+        # Process test/validation data
+        test_val_df_posts = df_posts_test
+        test_val_df_replies = df_replies_test
+
+        # Filter replies by time cutoff
+        test_val_df_replies['min_since_fst_post'] = round(
+            (test_val_df_replies['time'] - test_val_df_replies['time'].min()).dt.total_seconds() / 60, 2
+        )
+        test_val_df_replies['reply_min_since_fst_post'] = round(
+            (test_val_df_replies['reply_time'] - test_val_df_replies['time'].min()).dt.total_seconds() / 60, 2
+        )
+        test_val_df_replies = test_val_df_replies[
+            (test_val_df_replies.reply_min_since_fst_post <= self.time_cut) &
+            (test_val_df_replies.min_since_fst_post <= self.time_cut)
+        ]
+
+        # Group reply stats (test)
+        grouped_replies = test_val_df_replies.groupby(['id', 'min_since_fst_post']).agg(
+            replies=('time_diff', 'count'),
+            first_time_diff=('time_diff', 'first')
+        ).reset_index()
+
+        # Merge replies with test posts
+        test_val_df_posts = test_val_df_posts[features].merge(grouped_replies, on="id", how="inner")
+        test_val_df_posts.fillna(0, inplace=True)
+
+        # One-hot encode 'verified'
+        test_val_df_posts['verified'] = test_val_df_posts['verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
+        test_val_df_posts = pd.concat([test_val_df_posts, pd.get_dummies(test_val_df_posts["verified"], dtype=int)], axis=1)
+        test_val_df_posts.drop(["verified"], axis=1, inplace=True)
+        test_val_df_posts.rename(columns={1: 'verified', 0: 'no_verified'}, inplace=True)
+
+        # Preserve original index
+        test_val_df_posts = test_val_df_posts.merge(df_posts_test[['id']].reset_index(), on='id', how='left')
+        test_val_df_posts.set_index('index', drop=True, inplace=True)
+
+        # Log class distribution
+        print(test_val_df_posts['rumour'].value_counts())
+
+        # Scale test features
+        post_features = test_val_df_posts[[
+            "followers", "favorite_count", "retweet_count", "no_verified", "verified",
+            "replies", "first_time_diff", "embeddings_avg", "rumour", "min_since_fst_post"
+        ]]
+        scaled_features = self.scaler_posts.transform(
+            post_features[['followers', 'favorite_count', 'retweet_count', 'first_time_diff', 'replies']]
+        )
+
+        scaled_data = pd.DataFrame(scaled_features, columns=[
+            'followers', 'favorite_count', 'retweet_count', 'first_time_diff', 'replies'
+        ])
+        scaled_data['no_verified'] = post_features['no_verified'].values
+        scaled_data['verified'] = post_features['verified'].values
+        scaled_data['embeddings_avg'] = post_features['embeddings_avg'].values
+        scaled_data['rumour'] = post_features['rumour'].values
+        scaled_data['min_since_fst_post'] = post_features['min_since_fst_post'].values
+
+        self.test = scaled_data
+
+    def get_final_dataframes(self):
+        """
+        Returns the processed training and test DataFrames.
+
+        Returns:
+        - train (pd.DataFrame): Scaled training data with features and labels.
+        - test (pd.DataFrame): Scaled test/validation data with features and labels.
+        """
+        return self.train, self.test
+
