@@ -529,12 +529,6 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4 = self.process_data()
         return self.create_heterodata(train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4)
 
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import RobustScaler
-import torch
-from torch_geometric.data import HeteroData
-import torch_geometric.transforms as T
 
 class Hetero_Data_Processor_Transfer_Learning:
     """
