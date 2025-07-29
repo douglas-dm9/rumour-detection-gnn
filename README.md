@@ -30,3 +30,11 @@ The classes are stored in the ```utils.py``` file
 * ```Random Forest Charlie Hebdo.ipynb```
 * ```Light Gbm Charlie Hebdo.ipynb```
 * ```LSTM Charlie Hebdo.ipynb```
+
+#### 6. Experiments using two events (Transfer learning)
+
+* ```Han Transfer Learning.ipynb```
+* ```GAT Transfer Learning.ipynb```
+* ```Random Transfer Learning.ipynb```
+* ```Light Transfer Learning.ipynb```
+* ```LSTM Transfer Learning.ipynb```
