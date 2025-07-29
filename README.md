@@ -38,3 +38,10 @@ The classes are stored in the ```utils.py``` file
 * ```Random Transfer Learning.ipynb```
 * ```Light Transfer Learning.ipynb```
 * ```LSTM Transfer Learning.ipynb```
+
+#### 7. Summary of all experiments
+
+Plotly charts with the summary of all experiments, using the data stored in the mlflow database
+
+* ```Summary experiments Single Event.ipynb```
+* ```Summary Transfer Learning.ipynb```
