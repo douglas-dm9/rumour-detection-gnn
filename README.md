@@ -6,6 +6,7 @@ Notebook to create csv dataset from JSON raw files ```Dataset creation from file
 
 #### 2. EDA
 Exploratory Data Analysis to understand data distribuition and differences between rumours and not rumours propagation
+* ``eda.ipynb```
 
 #### 3. Pre processing and Feature Engineering
 
