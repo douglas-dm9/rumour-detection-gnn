@@ -22,3 +22,11 @@ The inference step records important classification metrics such as precision, A
 * **Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning**:  Class created to work with two events (test and train from two different contexts) and tabular data (Transfer Learning approach).
 
 The classes are stored in the ```utils.py``` file
+
+#### 5. Experiments Single Event (Using the data of Charlie Hebdo attack)
+
+* ```HAN Charlie Hebdo.ipynb```
+* ```GAT Charlie Hebdo.ipynb```
+* ```Random Forest Charlie Hebdo.ipynb```
+* ```Light Gbm Charlie Hebdo.ipynb```
+* ```LSTM Charlie Hebdo.ipynb```
