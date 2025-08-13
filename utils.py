@@ -8,6 +8,7 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import train_test_split
 
 
+
 class Load_Rumours_Dataset_filtering_since_first_post:
     """
     Class for loading, preprocessing, and splitting a rumour detection dataset 
@@ -76,8 +77,16 @@ class Load_Rumours_Dataset_filtering_since_first_post:
         self.df_posts.rename(columns={1: 'verified', 0: 'no_verified'}, inplace=True)
 
         # Train/validation/test split
-        train, not_train = train_test_split(self.df_posts, test_size=0.3, random_state=42, stratify=self.df_posts['rumour'])
-        val, test = train_test_split(not_train, test_size=0.5, random_state=42, stratify=not_train['rumour'])
+        #train, not_train = train_test_split(self.df_posts, test_size=0.3, random_state=42, stratify=self.df_posts['rumour'])
+        #val, test = train_test_split(not_train, test_size=0.5, random_state=42, stratify=not_train['rumour'])
+
+        df_post_time = self.df_replies[['time','id']].drop_duplicates().sort_values(by='time')
+        train = self.df_posts[self.df_posts.id.isin(df_post_time.iloc[0:int(0.7*df_post_time.shape[0])].id)]
+        not_train = self.df_posts[~self.df_posts.id.isin(train.id)]
+        val = not_train.iloc[0:int(0.5*not_train.shape[0])]
+        test = not_train.iloc[int(0.5*not_train.shape[0]):]
+        #train, not_train =self.df_posts.iloc[0:int(0.7*df_post_time.shape[0])], self.df_posts.iloc[int(0.7*df_post_time.shape[0]):]
+        #val, test = not_train.iloc[0:int(0.5*not_train.shape[0])],not_train.iloc[int(0.5*not_train.shape[0]):]
 
         # Scale selected numeric features for training
         train_features = train[["followers", "favorite_count", "retweet_count", "no_verified", "verified", 
@@ -118,6 +127,8 @@ class Load_Rumours_Dataset_filtering_since_first_post:
 
         # Merge with posts and apply same transformations
         test_val_df_posts = test_val_df_posts[features].merge(grouped_replies, on="id", how="inner").fillna(0)
+
+        test_val_df_posts.sort_values(by='min_since_fst_post',ascending=True,inplace=True)
 
         test_val_df_posts['verified'] = test_val_df_posts['verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
         test_val_df_posts = pd.concat([test_val_df_posts, pd.get_dummies(test_val_df_posts["verified"], dtype=int)], axis=1)
@@ -336,7 +347,6 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
         """
         return self.train, self.test
 
-
 class Hetero_Data_Processor_Filter_on_Test_since_first_post:
     """
     This class processes a rumor detection dataset composed of social media posts and replies,
@@ -407,8 +417,15 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         self.df_replies.rename(columns={1: 'reply_verified', 0: 'reply_no_verified'}, inplace=True)
 
         # Split posts into train/validation/test
-        train, not_train = train_test_split(self.df_posts, test_size=0.3, random_state=42, stratify=self.df_posts['rumour'])
-        val, test = train_test_split(not_train, test_size=0.5, random_state=42, stratify=not_train['rumour'])
+        #train, not_train = train_test_split(self.df_posts, test_size=0.3, random_state=42, stratify=self.df_posts['rumour'])
+        #val, test = train_test_split(not_train, test_size=0.5, random_state=42, stratify=not_train['rumour'])
+
+        df_post_time = self.df_replies[['time','id']].drop_duplicates().sort_values(by='time')
+
+        train = self.df_posts[self.df_posts.id.isin(df_post_time.iloc[0:int(0.7*df_post_time.shape[0])].id)]
+        not_train =  self.df_posts[~self.df_posts.id.isin(train.id)]
+        val = not_train.iloc[0:int(0.5*not_train.shape[0])]
+        test = not_train.iloc[int(0.5*not_train.shape[0]):]
 
         # Process training post features
         post_features_train = train[["followers", "favorite_count", "retweet_count", "no_verified", "verified", "first_time_diff"]]
@@ -432,6 +449,12 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         test_val_df_posts = test_val_df_posts[~test_val_df_posts.id.isin(train.id)]
         test_val_df_replies = test_val_df_replies[~test_val_df_replies.id.isin(train.id)]
 
+        test_val_df_posts = test_val_df_posts.merge(df_post_time,how='inner',on='id')
+        test_val_df_posts.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_posts.drop(columns='time',inplace=True)
+
+        test_val_df_replies.sort_values(by='time',ascending=True,inplace=True)
+    
         test_val_df_replies['min_since_fst_post'] = round((test_val_df_replies['time'] - test_val_df_replies['time'].min()).dt.total_seconds() / 60, 2)
         test_val_df_replies['reply_min_since_fst_post'] = round((test_val_df_replies['reply_time'] - test_val_df_replies['time'].min()).dt.total_seconds() / 60, 2)
         
@@ -447,6 +470,7 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         ).reset_index()
 
         test_val_df_posts = test_val_df_posts[post_features].merge(grouped_replies, on="id", how="inner").fillna(0)
+      
 
         # One-hot encode verified columns
         test_val_df_posts['verified'] = test_val_df_posts['verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
@@ -454,12 +478,36 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         test_val_df_posts.rename(columns={1: 'verified', 0: 'no_verified'}, inplace=True)
 
         test_val_df_replies['reply_verified'] = test_val_df_replies['reply_verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
-        test_val_df_replies = pd.concat([test_val_df_replies, pd.get_dummies(test_val_df_replies["reply_verified"], dtype=int)], axis=1).drop(["reply_verified"], axis=1)
+
+    
+        # Create dummy columns ensuring both 0 and 1 are present
+        dummies = pd.get_dummies(test_val_df_replies["reply_verified"], dtype=int)
+        
+        # Add missing columns if necessary
+        for col in [0, 1]:
+            if col not in dummies.columns:
+                dummies[col] = 0
+        
+        # Concatenate and rename
+        test_val_df_replies = pd.concat([test_val_df_replies.drop(["reply_verified"], axis=1), dummies], axis=1)
         test_val_df_replies.rename(columns={1: 'reply_verified', 0: 'reply_no_verified'}, inplace=True)
+        
+                
+        #test_val_df_replies = pd.concat([test_val_df_replies, pd.get_dummies(test_val_df_replies["reply_verified"], dtype=int)], axis=1).drop(["reply_verified"], axis=1)
+        #test_val_df_replies.rename(columns={1: 'reply_verified', 0: 'reply_no_verified'}, inplace=True)
 
         # Recover val/test label
         test_val_df_posts = test_val_df_posts.merge(pd.concat([val, test])[['id']].reset_index(), on='id', how='left')
         test_val_df_posts.set_index('index', drop=True, inplace=True)
+
+        
+        test_val_df_posts =test_val_df_posts.merge(df_post_time, on="id", how="inner")
+
+        test_val_df_posts.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_posts.drop(columns=['time'],inplace=True)
+
+
+        
 
         # Scale features
         scaled_features = scaler_posts.transform(test_val_df_posts[["followers", "favorite_count", "retweet_count", "first_time_diff"]])
@@ -528,6 +576,8 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         self.load_data()
         train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4 = self.process_data()
         return self.create_heterodata(train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4)
+
+
 
 
 class Hetero_Data_Processor_Transfer_Learning:
