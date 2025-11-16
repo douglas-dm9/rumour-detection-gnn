@@ -8,7 +8,6 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import train_test_split
 
 
-
 class Load_Rumours_Dataset_filtering_since_first_post:
     """
     Class for loading, preprocessing, and splitting a rumour detection dataset 
@@ -161,7 +160,6 @@ class Load_Rumours_Dataset_filtering_since_first_post:
         """
         return self.train_dataset, self.test_dataset
 
-
 class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
     """
     This class loads, preprocesses, and transforms rumor detection data for transfer learning.
@@ -186,10 +184,10 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
         self.test_size = test_size
 
         # Set file paths for replies and posts
-        self.file_path_replies_train = f"replies_{self.train_dataset}.pkl"
-        self.file_path_posts_train = f"posts_{self.train_dataset}.pkl"
-        self.file_path_replies_test = f"replies_{self.test_dataset}.pkl"
-        self.file_path_posts_test = f"posts_{self.test_dataset}.pkl"
+        self.file_path_replies_train = f"../replies_{self.train_dataset}.pkl"
+        self.file_path_posts_train = f"../posts_{self.train_dataset}.pkl"
+        self.file_path_replies_test = f"../replies_{self.test_dataset}.pkl"
+        self.file_path_posts_test = f"../posts_{self.test_dataset}.pkl"
 
     def load_data(self):
         """
@@ -212,8 +210,13 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
         ).sort_values(by='time', ascending=True)
 
         # Split test posts into test and transfer parts
-        df_posts_test = self.df_posts[int(len(self.df_posts) * (1 - self.test_size)):]
-        df_posts_concat = self.df_posts[:int(len(self.df_posts) * (1 - self.test_size))]
+        #df_posts_test = self.df_posts[int(len(self.df_posts) * (1 - self.test_size)):]
+        #df_posts_concat = self.df_posts[:int(len(self.df_posts) * (1 - self.test_size))]
+
+        df_post_time = self.df_replies[['time','id']].drop_duplicates().sort_values(by='time')
+
+        df_posts_concat = self.df_posts[self.df_posts.id.isin(df_post_time.iloc[0:int((1-self.test_size)*df_post_time.shape[0])].id)]
+        df_posts_test = self.df_posts[~self.df_posts.id.isin(df_posts_concat.id)]
 
         # Split replies accordingly
         df_replies_concat = self.df_replies[self.df_replies.id.isin(df_posts_concat.id)]
@@ -294,6 +297,10 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
             (test_val_df_replies.min_since_fst_post <= self.time_cut)
         ]
 
+        #test_val_df_replies = test_val_df_replies.merge(df_post_time,how='inner',on='id')
+        test_val_df_replies.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_replies.drop(columns='time',inplace=True)
+
         # Group reply stats (test)
         grouped_replies = test_val_df_replies.groupby(['id', 'min_since_fst_post']).agg(
             replies=('time_diff', 'count'),
@@ -313,6 +320,10 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
         # Preserve original index
         test_val_df_posts = test_val_df_posts.merge(df_posts_test[['id']].reset_index(), on='id', how='left')
         test_val_df_posts.set_index('index', drop=True, inplace=True)
+
+        test_val_df_posts = test_val_df_posts.merge(df_post_time,how='inner',on='id')
+        test_val_df_posts.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_posts.drop(columns='time',inplace=True)
 
         # Log class distribution
         print(test_val_df_posts['rumour'].value_counts())
@@ -346,6 +357,8 @@ class Load_Rumours_Dataset_filtering_since_first_post_Transfer_Learning:
         - test (pd.DataFrame): Scaled test/validation data with features and labels.
         """
         return self.train, self.test
+
+
 
 class Hetero_Data_Processor_Filter_on_Test_since_first_post:
     """
@@ -426,6 +439,7 @@ class Hetero_Data_Processor_Filter_on_Test_since_first_post:
         not_train =  self.df_posts[~self.df_posts.id.isin(train.id)]
         val = not_train.iloc[0:int(0.5*not_train.shape[0])]
         test = not_train.iloc[int(0.5*not_train.shape[0]):]
+
 
         # Process training post features
         post_features_train = train[["followers", "favorite_count", "retweet_count", "no_verified", "verified", "first_time_diff"]]
@@ -592,7 +606,7 @@ class Hetero_Data_Processor_Transfer_Learning:
     - Generating graph-ready input for PyTorch Geometric HeteroData format
     """
 
-    def __init__(self, train_dataset, test_dataset, time_cut=24*3*60, test_size=0.3):
+    def __init__(self, train_dataset, test_dataset, time_cut=24*3*60, test_size=0.7):
         """
         Initialize the processor with dataset names and preprocessing parameters.
 
@@ -607,10 +621,10 @@ class Hetero_Data_Processor_Transfer_Learning:
         self.time_cut = time_cut
         self.test_size = test_size
 
-        self.file_path_replies_train = f"replies_{self.train_dataset}.pkl"
-        self.file_path_posts_train = f"posts_{self.train_dataset}.pkl"
-        self.file_path_replies_test = f"replies_{self.test_dataset}.pkl"
-        self.file_path_posts_test = f"posts_{self.test_dataset}.pkl"
+        self.file_path_replies_train = f"../replies_{self.train_dataset}.pkl"
+        self.file_path_posts_train = f"../posts_{self.train_dataset}.pkl"
+        self.file_path_replies_test = f"../replies_{self.test_dataset}.pkl"
+        self.file_path_posts_test = f"../posts_{self.test_dataset}.pkl"
 
     def load_data(self):
         """
@@ -635,8 +649,14 @@ class Hetero_Data_Processor_Transfer_Learning:
         ).sort_values(by='time', ascending=True)
 
         # Split test data into test and val sets
-        df_posts_test = self.df_posts[int(len(self.df_posts)*(1 - self.test_size)):]
-        df_posts_concat = self.df_posts[:int(len(self.df_posts)*(1 - self.test_size))]
+
+        df_post_time = self.df_replies[['time','id']].drop_duplicates().sort_values(by='time')
+
+        df_posts_concat = self.df_posts[self.df_posts.id.isin(df_post_time.iloc[0:int((1-self.test_size)*df_post_time.shape[0])].id)]
+        df_posts_test = self.df_posts[~self.df_posts.id.isin(df_posts_concat.id)]
+        
+        #df_posts_test = self.df_posts[int(len(self.df_posts)*(1 - self.test_size)):]
+        #df_posts_concat = self.df_posts[:int(len(self.df_posts)*(1 - self.test_size))]
 
         # Filter corresponding replies
         df_replies_concat = self.df_replies[self.df_replies.id.isin(df_posts_concat.id)]
@@ -679,6 +699,8 @@ class Hetero_Data_Processor_Transfer_Learning:
         df_replies_train.rename(columns={1: 'reply_verified', 0: 'reply_no_verified'}, inplace=True)
 
         train = df_posts_train
+
+        
 
         # Scale post features
         post_features = train[["followers", "favorite_count", "retweet_count", "no_verified", "verified", "first_time_diff"]]
@@ -732,10 +754,16 @@ class Hetero_Data_Processor_Transfer_Learning:
         test_val_df_posts.drop(["verified"], axis=1, inplace=True)
         test_val_df_posts.rename(columns={1: 'verified', 0: 'no_verified'}, inplace=True)
 
+        test_val_df_posts = test_val_df_posts.merge(df_post_time,how='inner',on='id')
+        test_val_df_posts.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_posts.drop(columns='time',inplace=True)
+
         if 'verified' not in test_val_df_posts.columns:
             test_val_df_replies['verified'] = 0
         elif 'no_verified' not in test_val_df_posts.columns:
             test_val_df_replies['no_verified'] = 0
+
+        
 
         test_val_df_replies['reply_verified'] = test_val_df_replies['reply_verified'].astype(str).replace({'True': '1', 'False': '0'}).astype(int)
         test_val_df_replies = pd.concat([test_val_df_replies, pd.get_dummies(test_val_df_replies["reply_verified"], dtype=int)], axis=1)
@@ -746,6 +774,11 @@ class Hetero_Data_Processor_Transfer_Learning:
             test_val_df_replies['reply_no_verified'] = 0
         elif 'reply_verified' not in test_val_df_replies.columns:
             test_val_df_replies['reply_verified'] = 0
+
+        test_val_df_replies = test_val_df_replies.merge(df_post_time,how='inner',on='id')
+        test_val_df_replies.sort_values(by='time',ascending=True,inplace=True)
+        test_val_df_replies.drop(columns='time',inplace=True)
+
 
         post_features = test_val_df_posts[["followers", "favorite_count", "retweet_count", "no_verified", "verified", "first_time_diff"]]
         scaled_features = scaler_posts.transform(post_features[['followers', 'favorite_count', 'retweet_count', 'first_time_diff']])
@@ -818,4 +851,3 @@ class Hetero_Data_Processor_Transfer_Learning:
         self.load_data()
         train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4 = self.process_data()
         return self.create_heterodata(train, test_val_df_posts, df_replies_edges, x1, x2, x3, x4)
-
