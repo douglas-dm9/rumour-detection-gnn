@@ -46,9 +46,9 @@ Plotly charts with the summary of all experiments, using the data stored in the 
 
 * ```Results Charlie Hebdo.ipynb```
 * ```Results Ferguson.ipynb```
-* * ```Results Ottawa Shooting.ipynb```
+* ```Results Ottawa Shooting.ipynb```
 * ```Results Sydney Siege.ipynb```
-* * ```Results German Wings Crash.ipynb```
+*  ```Results German Wings Crash.ipynb```
  
 #### 8. Summary of two events experiments (Transfer learning)
 
