@@ -24,25 +24,34 @@ The inference step records important classification metrics such as precision, A
 
 The classes are stored in the ```utils.py``` file
 
-#### 5. Experiments Single Event (Using the data of Charlie Hebdo attack)
+#### 5. Experiments Single Events
 
-* ```HAN Charlie Hebdo.ipynb```
-* ```GAT Charlie Hebdo.ipynb```
-* ```Random Forest Charlie Hebdo.ipynb```
-* ```Light Gbm Charlie Hebdo.ipynb```
-* ```LSTM Charlie Hebdo.ipynb```
+* ```HAN.ipynb```
+* ```GAT.ipynb```
+* ```Random Forest.ipynb```
+* ```Light GBM.ipynb```
+* ```LSTM.ipynb```
 
 #### 6. Experiments using two events (Transfer learning)
 
-* ```Han Transfer Learning.ipynb```
-* ```GAT Transfer Learning.ipynb```
-* ```Random Transfer Learning.ipynb```
-* ```Light Transfer Learning.ipynb```
-* ```LSTM Transfer Learning.ipynb```
+* ```HAN TF.ipynb```
+* ```GAT TF.ipynb```
+* ```Random Forest TF.ipynb```
+* ```Light GBM TF.ipynb```
+* ```LSTM TF.ipynb```
 
-#### 7. Summary of all experiments
+#### 7. Summary of single event experiments
 
 Plotly charts with the summary of all experiments, using the data stored in the mlflow database
 
-* ```Summary experiments Single Event.ipynb```
-* ```Summary Transfer Learning.ipynb```
+* ```Results Charlie Hebdo.ipynb```
+* ```Results Ferguson.ipynb```
+* * ```Results Ottawa Shooting.ipynb```
+* ```Results Sydney Siege.ipynb```
+* * ```Results German Wings Crash.ipynb```
+ 
+#### 8. Summary of two events experiments (Transfer learning)
+
+Plotly charts with the summary of all experiments, using the data stored in the mlflow database
+
+* ```ResultsTransfer Learning.ipynb```
