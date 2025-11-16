@@ -55,3 +55,13 @@ Plotly charts with the summary of all experiments, using the data stored in the 
 Plotly charts with the summary of all experiments, using the data stored in the mlflow database
 
 * ```ResultsTransfer Learning.ipynb```
+
+#### Conclusions
+
+The graph neural networks (GNNs) delivered stronger overall performance, showing a more balanced trade-off between precision and recall across all single-event experiments. This held both over time and at time 0 metrics, when posts are first published.
+
+In the transfer-learning experiments, where the full dataset from one event plus 30% of another event (for fine-tuning) were used to train the models, GNNs were outperformed by the LSTM and boosting models. This outcome was expected due the fact that at time 0 in a transfer-learning setup, there are few or no connected nodes available for the graph structure, because the two events do not share the same users in the PHEME dataset. Even so, once time progresses and the graph becomes more populated, the GNNs are able to maintain consistent performance.
+
+One clear advantage of the GNNs in the results, compared with the other models, was the performance improvement in events with high class imbalance, at least within the datasets available for this study.
+
+In summary, traditional boosting algorithms showed very low variability across the rumour-spread timeline, making them strong candidates for baseline models. LSTMs can also be competitive when the temporal dimension is available, though their training complexity and metrics variability should be considered. GNN models, especially those designed for heterogeneous graphs, can be highly effective. By leveraging propagation and structural information, they offer an additional mechanism to handle extremely imbalanced datasets an fight rumour spread early.
