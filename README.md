@@ -56,6 +56,19 @@ Plotly charts with the summary of all experiments, using the data stored in the 
 
 * ```ResultsTransfer Learning.ipynb```
 
+#### Data set stats
+
+### Table 8 – Description of the Events
+
+| Event              | Rumor Tweets (N / %) | Non-Rumor Tweets (N / %) | Rumor Users (N / %) | Non-Rumor Users (N / %) |
+|--------------------|-----------------------|----------------------------|-----------------------|---------------------------|
+| Charlie Hebdo      | 458 (22%)              | 1,621 (78%)                | 13,879 (74.2%)        | 4,821 (25.8%)             |
+| Germanwings Crash  | 238 (50.7%)            | 231 (49.3%)                | 1,464 (50.3%)         | 1,442 (49.7%)             |
+| Ottawa Shooting    | 470 (52.8%)            | 420 (47.2%)                | 3,978 (51.1%)         | 3,794 (48.9%)             |
+| Sydney Siege       | 522 (42.8%)            | 699 (57.2%)                | 7,545 (61.8%)         | 4,658 (38.2%)             |
+| Ferguson           | 284 (24.8%)            | 859 (75.2%)                | 3,792 (35%)           | 7,001 (65%)               |
+
+
 #### Conclusions
 
 The graph neural networks (GNNs) delivered stronger overall performance, showing a more balanced trade-off between precision and recall across all single-event experiments. This held both over time and at time 0 metrics, when posts are first published.
