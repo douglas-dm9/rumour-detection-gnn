@@ -1,5 +1,10 @@
 # Paper code of "Early rumor detection: Evaluating the effectiveness of graph neural networks"
 
+# Link to master's thesis
+[Early rumor detection: Evaluating the effectiveness of graph neural networks]([https://example.com](https://repositorio.ufu.br/handle/123456789/47362))
+
+# Paper publication
+Coming soon .. 
 
 #### 1. JSON to CSV files.
 Notebook to create csv dataset from JSON raw files ```Dataset creation from files.ipynb```. The output, as example is the  ```charliehebdo-all-rnr-threads.csv```, where each line is an reaction with all source tweet features and the reply features.
