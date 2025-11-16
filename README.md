@@ -1,9 +1,9 @@
 # Paper code of "Early rumor detection: Evaluating the effectiveness of graph neural networks"
 
-# Link to master's thesis
+### Link to master's thesis
 [Early rumor detection: Evaluating the effectiveness of graph neural networks](https://repositorio.ufu.br/handle/123456789/47362)
 
-# Paper publication
+### Paper publication
 Coming soon .. 
 
 #### 1. JSON to CSV files.
